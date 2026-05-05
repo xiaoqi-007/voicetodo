@@ -6,11 +6,13 @@ import androidx.lifecycle.viewModelScope
 import com.example.voicetodo.data.TodoDatabase
 import com.example.voicetodo.data.TodoItem
 import com.example.voicetodo.reminder.AlarmScheduler
+import com.example.voicetodo.reminder.SystemAlarmHelper
 import com.example.voicetodo.voice.ParsedTodo
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
 class TodoViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -33,10 +35,22 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
             )
             val id = todoDao.insert(todo).toInt()
 
-            // 如果有提醒时间，设置闹钟
             if (parsed.remindTime != null) {
                 val savedTodo = todo.copy(id = id)
-                AlarmScheduler.schedule(getApplication(), savedTodo)
+
+                if (parsed.isAlarm) {
+                    // 闹钟模式：直接调用系统闹钟 App
+                    val success = SystemAlarmHelper.setSystemAlarmFromTimestamp(
+                        getApplication(), parsed.remindTime, parsed.task
+                    )
+                    if (!success) {
+                        // 系统闹钟不可用，兜底用 AlarmManager
+                        AlarmScheduler.schedule(getApplication(), savedTodo)
+                    }
+                } else {
+                    // 提醒模式：用 AlarmManager + 通知
+                    AlarmScheduler.schedule(getApplication(), savedTodo)
+                }
             }
         }
     }
@@ -45,8 +59,6 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val updated = todo.copy(isCompleted = !todo.isCompleted)
             todoDao.update(updated)
-
-            // 如果标记完成，取消闹钟
             if (updated.isCompleted && updated.remindTime != null) {
                 AlarmScheduler.cancel(getApplication(), updated.id)
             }
@@ -56,7 +68,6 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteTodo(todo: TodoItem) {
         viewModelScope.launch {
             todoDao.delete(todo)
-            // 取消闹钟
             if (todo.remindTime != null) {
                 AlarmScheduler.cancel(getApplication(), todo.id)
             }
@@ -67,5 +78,13 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             todoDao.deleteCompleted()
         }
+    }
+
+    /**
+     * 手动触发：把待办设为系统闹钟
+     */
+    fun setAsSystemAlarm(todo: TodoItem) {
+        val time = todo.remindTime ?: return
+        SystemAlarmHelper.setSystemAlarmFromTimestamp(getApplication(), time, todo.task)
     }
 }

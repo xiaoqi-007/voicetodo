@@ -1,6 +1,6 @@
 {
-    "versionCode": 5,
-    "versionName": "1.4",
-    "apkUrl": "https://ghfast.top/https://github.com/xiaoqi-007/voicetodo/releases/download/v1.4/VoiceTodo.apk",
-    "changelog": "修复闪退+闹钟不响：忽略电池优化+setAlarmClock系统级通道"
+    "versionCode": 6,
+    "versionName": "1.5",
+    "apkUrl": "https://ghfast.top/https://github.com/xiaoqi-007/voicetodo/releases/download/v1.5/VoiceTodo.apk",
+    "changelog": "打通系统闹钟：语音说闹钟直接调起手机闹钟App"
 }

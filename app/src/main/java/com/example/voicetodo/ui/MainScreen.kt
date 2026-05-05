@@ -38,7 +38,8 @@ fun MainScreen(
     todos: List<TodoItem>,
     onAddTodo: (ParsedTodo) -> Unit,
     onToggleComplete: (TodoItem) -> Unit,
-    onDelete: (TodoItem) -> Unit
+    onDelete: (TodoItem) -> Unit,
+    onSetAlarm: (TodoItem) -> Unit = {}
 ) {
     val context = LocalContext.current
     val voiceRecognizer = remember { VoiceRecognizer(context) }
@@ -214,6 +215,7 @@ fun MainScreen(
                 todos = todos,
                 onToggleComplete = onToggleComplete,
                 onDelete = onDelete,
+                onSetAlarm = onSetAlarm,
                 modifier = Modifier.padding(bottom = 160.dp)
             )
 

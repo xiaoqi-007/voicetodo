@@ -29,6 +29,7 @@ fun TodoList(
     todos: List<TodoItem>,
     onToggleComplete: (TodoItem) -> Unit,
     onDelete: (TodoItem) -> Unit,
+    onSetAlarm: (TodoItem) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     if (todos.isEmpty()) {
@@ -69,7 +70,8 @@ fun TodoList(
                 TodoItemCard(
                     todo = todo,
                     onToggleComplete = { onToggleComplete(todo) },
-                    onDelete = { onDelete(todo) }
+                    onDelete = { onDelete(todo) },
+                    onSetAlarm = { onSetAlarm(todo) }
                 )
             }
         }
@@ -81,7 +83,8 @@ fun TodoList(
 private fun TodoItemCard(
     todo: TodoItem,
     onToggleComplete: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onSetAlarm: () -> Unit
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
 
@@ -153,6 +156,17 @@ private fun TodoItemCard(
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
+                }
+            }
+
+            // 设为系统闹钟按钮
+            if (todo.remindTime != null && !todo.isCompleted) {
+                IconButton(onClick = onSetAlarm) {
+                    Icon(
+                        imageVector = Icons.Default.Alarm,
+                        contentDescription = "设为系统闹钟",
+                        tint = MaterialTheme.colorScheme.tertiary
+                    )
                 }
             }
 
