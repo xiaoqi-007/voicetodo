@@ -1,0 +1,9 @@
+{
+  "appId": "com.voicetodo.app",
+  "appName": "语音待办",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {}
+}
