@@ -1,6 +1,6 @@
 {
     "versionCode": 2,
     "versionName": "1.1",
-    "apkUrl": "VoiceTodo.apk",
-    "changelog": "1.1: 更新内容"
+    "apkUrl": "https://ghfast.top/https://github.com/xiaoqi-007/voicetodo/releases/download/v1.1/VoiceTodo.apk",
+    "changelog": "1.1: 修复语音识别兼容性，支持文字输入兜底，App内自动更新"
 }
