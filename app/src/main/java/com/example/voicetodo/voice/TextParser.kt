@@ -24,21 +24,21 @@ class TextParser {
 
     private val chineseNumPattern = "[一二两三四五六七八九十]+"
 
-    // 相对时间模式: "X分钟/小时/天后"
+    // 相对时间: "X分钟/小时/天后"
     private val relativeTimePattern = Pattern.compile(
         "(\\d+|$chineseNumPattern)(分钟|小时|天|秒钟?)后"
     )
 
-    // 绝对时间模式: "上午/下午 X点X分"
+    // 绝对时间: "上午/下午 X点X分"
     private val absoluteTimePattern = Pattern.compile(
         "(今天|明天|后天|大后天)?(上午|下午|晚上|早上|早晨|中午)?(\\d+|$chineseNumPattern)点(?:(\\d+|$chineseNumPattern)分?)?"
     )
 
-    // 闹钟关键词
-    private val alarmKeywords = listOf("闹钟", "闹铃", "定时")
+    // 闹钟关键词（强提醒，使用系统闹钟级通道）
+    private val alarmKeywords = listOf("闹钟", "闹铃", "定时闹钟", "设个闹钟")
 
-    // 提醒关键词
-    private val reminderKeywords = listOf("提醒", "记得", "别忘", "通知")
+    // 提醒关键词（普通提醒，使用通知）
+    private val reminderKeywords = listOf("提醒", "记得", "别忘", "通知", "到时候")
 
     fun parse(input: String): ParsedTodo {
         var text = input.trim()
@@ -51,6 +51,17 @@ class TextParser {
                 isAlarm = true
                 text = text.replace(keyword, "").trim()
                 break
+            }
+        }
+
+        // 检测提醒关键词（如果有提醒词但没有闹钟词，标记为普通提醒）
+        if (!isAlarm) {
+            for (keyword in reminderKeywords) {
+                if (text.contains(keyword)) {
+                    // 有提醒意图，但不是闹钟
+                    text = text.replace(keyword, "").trim()
+                    break
+                }
             }
         }
 
@@ -70,7 +81,6 @@ class TextParser {
             }
             remindTime = calendar.timeInMillis
 
-            // 移除时间部分，提取任务
             text = text.substring(0, relativeMatch.start()) +
                     text.substring(relativeMatch.end())
         } else {
@@ -85,7 +95,6 @@ class TextParser {
                 var hour = parseNumber(hourStr)
                 val minute = if (minuteStr != null) parseNumber(minuteStr) else 0
 
-                // 处理上午/下午
                 if (period != null) {
                     when (period) {
                         "下午", "晚上" -> if (hour < 12) hour += 12
@@ -102,20 +111,17 @@ class TextParser {
                     set(Calendar.MILLISECOND, 0)
                 }
 
-                // 如果计算出的时间已经过去，推到明天
                 if (calendar.timeInMillis <= System.currentTimeMillis()) {
                     calendar.add(Calendar.DAY_OF_MONTH, 1)
                 }
 
                 remindTime = calendar.timeInMillis
 
-                // 移除时间部分，提取任务
                 text = text.substring(0, absoluteMatch.start()) +
                         text.substring(absoluteMatch.end())
             }
         }
 
-        // 清理任务文本
         text = cleanTaskText(text)
 
         return ParsedTodo(
@@ -140,12 +146,10 @@ class TextParser {
 
     private fun cleanTaskText(text: String): String {
         var result = text
-        // 移除常见无意义词汇
         val removeWords = listOf("帮我", "我要", "我需要", "请", "一下", "吧")
         for (word in removeWords) {
             result = result.replace(word, "")
         }
-        // 移除多余标点和空格
         result = result.replace(Regex("[，。、！？,\\s]+"), " ").trim()
         return result
     }

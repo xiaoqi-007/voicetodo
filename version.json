@@ -1,6 +1,6 @@
 {
-    "versionCode": 3,
-    "versionName": "1.2",
-    "apkUrl": "https://ghfast.top/https://github.com/xiaoqi-007/voicetodo/releases/download/v1.2/VoiceTodo.apk",
-    "changelog": "优化自动更新，一键发版"
+    "versionCode": 4,
+    "versionName": "1.3",
+    "apkUrl": "https://ghfast.top/https://github.com/xiaoqi-007/voicetodo/releases/download/v1.3/VoiceTodo.apk",
+    "changelog": "修复闹钟提醒功能：使用系统级闹钟通道，支持全屏弹窗"
 }
