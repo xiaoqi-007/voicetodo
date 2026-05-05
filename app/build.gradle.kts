@@ -12,8 +12,8 @@ android {
         applicationId = "com.example.voicetodo"
         minSdk = 26
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = 3
+        versionName = "1.2"
 
         buildConfigField("String", "UPDATE_URL", "\"https://ghfast.top/https://raw.githubusercontent.com/xiaoqi-007/voicetodo/main/version.json\"")
         buildConfigField("String", "APK_MIRROR_PREFIX", "\"https://ghfast.top/https://github.com/xiaoqi-007/voicetodo/releases/\"")
