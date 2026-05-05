@@ -7,21 +7,18 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import com.example.voicetodo.MainActivity
 import com.example.voicetodo.data.TodoItem
 
 object AlarmScheduler {
 
-    /** 检查是否有精确闹钟权限 */
     fun canScheduleExact(context: Context): Boolean {
         val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             am.canScheduleExactAlarms()
-        } else {
-            true
-        }
+        } else true
     }
 
-    /** 获取跳转到精确闹钟设置页的 Intent */
     fun getExactAlarmSettingsIntent(context: Context): Intent {
         return Intent().apply {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -34,84 +31,48 @@ object AlarmScheduler {
     fun schedule(context: Context, todo: TodoItem) {
         val remindTime = todo.remindTime ?: return
 
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-        val intent = Intent(context, AlarmReceiver::class.java).apply {
+        val alarmIntent = Intent(context, AlarmReceiver::class.java).apply {
             putExtra("todo_id", todo.id)
             putExtra("todo_task", todo.task)
             putExtra("is_alarm", todo.isAlarm)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            todo.id,
-            intent,
+            context, todo.id, alarmIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        // 统一使用 setAlarmClock：系统级闹钟，国产手机也不会杀
+        val showIntent = PendingIntent.getActivity(
+            context, todo.id,
+            Intent(context, MainActivity::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         try {
-            if (todo.isAlarm) {
-                // 闹钟模式：使用 setAlarmClock，系统级优先级，不会被电池优化杀掉
-                val showIntent = PendingIntent.getActivity(
-                    context, todo.id,
-                    Intent(context, com.example.voicetodo.MainActivity::class.java),
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                )
-                alarmManager.setAlarmClock(
-                    AlarmManager.AlarmClockInfo(remindTime, showIntent),
-                    pendingIntent
-                )
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                // Android 12+：检查精确闹钟权限
-                if (alarmManager.canScheduleExactAlarms()) {
-                    alarmManager.setExactAndAllowWhileIdle(
-                        AlarmManager.RTC_WAKEUP, remindTime, pendingIntent
-                    )
-                } else {
-                    // 没权限，用 setAlarmClock（优先级最高，不受限制）
-                    val showIntent = PendingIntent.getActivity(
-                        context, todo.id,
-                        Intent(context, com.example.voicetodo.MainActivity::class.java),
-                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                    )
-                    alarmManager.setAlarmClock(
-                        AlarmManager.AlarmClockInfo(remindTime, showIntent),
-                        pendingIntent
-                    )
-                }
-            } else {
-                // Android 12 以下
-                alarmManager.setExactAndAllowWhileIdle(
+            am.setAlarmClock(
+                AlarmManager.AlarmClockInfo(remindTime, showIntent),
+                pendingIntent
+            )
+        } catch (e: Exception) {
+            // 极端情况兜底
+            try {
+                am.setExactAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP, remindTime, pendingIntent
                 )
-            }
-        } catch (e: SecurityException) {
-            // 最终兜底：setAlarmClock 不需要 SCHEDULE_EXACT_ALARM 权限
-            try {
-                val showIntent = PendingIntent.getActivity(
-                    context, todo.id,
-                    Intent(context, com.example.voicetodo.MainActivity::class.java),
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                )
-                alarmManager.setAlarmClock(
-                    AlarmManager.AlarmClockInfo(remindTime, showIntent),
-                    pendingIntent
-                )
-            } catch (_: Exception) {
-                // 彻底失败
-            }
+            } catch (_: Exception) { }
         }
     }
 
     fun cancel(context: Context, todoId: Int) {
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-
+        val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent = Intent(context, AlarmReceiver::class.java)
         val pendingIntent = PendingIntent.getBroadcast(
             context, todoId, intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-
-        alarmManager.cancel(pendingIntent)
+        am.cancel(pendingIntent)
     }
 }

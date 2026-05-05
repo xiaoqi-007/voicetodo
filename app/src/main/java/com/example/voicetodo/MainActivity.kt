@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -27,14 +28,8 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var viewModel: TodoViewModel
 
-    // 通知权限
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { _ -> }
-
-    // 精确闹钟权限
-    private val exactAlarmPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
     ) { _ -> }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,38 +37,7 @@ class MainActivity : ComponentActivity() {
 
         viewModel = ViewModelProvider(this)[TodoViewModel::class.java]
 
-        // Android 13+: 请求通知权限
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
-                != PackageManager.PERMISSION_GRANTED
-            ) {
-                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            }
-        }
-
-        // Android 12+: 请求精确闹钟权限
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (!AlarmScheduler.canScheduleExact(this)) {
-                try {
-                    exactAlarmPermissionLauncher.launch(
-                        AlarmScheduler.getExactAlarmSettingsIntent(this)
-                    )
-                } catch (_: Exception) { }
-            }
-        }
-
-        // Android 14+: 请求全屏通知权限
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            val pm = getSystemService(NOTIFICATION_SERVICE) as android.app.NotificationManager
-            if (!pm.canUseFullScreenIntent()) {
-                try {
-                    val intent = Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT).apply {
-                        data = Uri.parse("package:$packageName")
-                    }
-                    startActivity(intent)
-                } catch (_: Exception) { }
-            }
-        }
+        requestPermissions()
 
         setContent {
             VoiceTodoTheme {
@@ -90,6 +54,39 @@ class MainActivity : ComponentActivity() {
                         onDelete = { todo -> viewModel.deleteTodo(todo) }
                     )
                 }
+            }
+        }
+    }
+
+    private fun requestPermissions() {
+        // Android 13+: 通知权限
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+
+        // 忽略电池优化（国产手机必须，否则闹钟被杀）
+        try {
+            val pm = getSystemService(POWER_SERVICE) as PowerManager
+            if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+                val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                    data = Uri.parse("package:$packageName")
+                }
+                startActivity(intent)
+            }
+        } catch (_: Exception) {
+            // 部分设备不支持，忽略
+        }
+
+        // Android 12+: 精确闹钟权限（静默检查，不弹窗）
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (!AlarmScheduler.canScheduleExact(this)) {
+                try {
+                    startActivity(AlarmScheduler.getExactAlarmSettingsIntent(this))
+                } catch (_: Exception) { }
             }
         }
     }
