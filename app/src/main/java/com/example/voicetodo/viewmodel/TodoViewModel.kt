@@ -1,6 +1,7 @@
 package com.example.voicetodo.viewmodel
 
 import android.app.Application
+import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.voicetodo.data.TodoDatabase
@@ -12,7 +13,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.util.Calendar
+import java.text.SimpleDateFormat
+import java.util.*
 
 class TodoViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -40,16 +42,39 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
 
                 if (parsed.isAlarm) {
                     // 闹钟模式：直接调用系统闹钟 App
-                    val success = SystemAlarmHelper.setSystemAlarmFromTimestamp(
-                        getApplication(), parsed.remindTime, parsed.task
+                    val cal = Calendar.getInstance().apply { timeInMillis = parsed.remindTime }
+                    val hour = cal.get(Calendar.HOUR_OF_DAY)
+                    val minute = cal.get(Calendar.MINUTE)
+                    val timeStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(parsed.remindTime))
+
+                    val success = SystemAlarmHelper.setSystemAlarm(
+                        getApplication(), hour, minute, parsed.task
                     )
-                    if (!success) {
+
+                    if (success) {
+                        Toast.makeText(
+                            getApplication(),
+                            "已打开系统闹钟 $timeStr",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    } else {
                         // 系统闹钟不可用，兜底用 AlarmManager
                         AlarmScheduler.schedule(getApplication(), savedTodo)
+                        Toast.makeText(
+                            getApplication(),
+                            "已设置App内闹钟 $timeStr",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 } else {
                     // 提醒模式：用 AlarmManager + 通知
                     AlarmScheduler.schedule(getApplication(), savedTodo)
+                    val timeStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(parsed.remindTime))
+                    Toast.makeText(
+                        getApplication(),
+                        "已设置提醒 $timeStr",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             }
         }

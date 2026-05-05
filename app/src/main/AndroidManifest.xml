@@ -2,11 +2,27 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- 查询语音识别应用 (Android 11+) -->
+    <!-- 查询系统应用 (Android 11+ 包可见性) -->
     <queries>
         <intent>
             <action android:name="android.speech.RecognitionService" />
         </intent>
+        <intent>
+            <action android:name="android.intent.action.SET_ALARM" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SHOW_ALARMS" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SET_TIMER" />
+        </intent>
+        <package android:name="com.android.deskclock" />
+        <package android:name="com.google.android.deskclock" />
+        <package android:name="com.samsung.android.app.clock" />
+        <package android:name="com.miui.clock" />
+        <package android:name="com.huawei.deskclock" />
+        <package android:name="com.coloros.clock" />
+        <package android:name="com.vivo.clock" />
     </queries>
 
     <!-- 网络权限 -->
